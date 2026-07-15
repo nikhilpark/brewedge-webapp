@@ -1,6 +1,8 @@
 // Mock data that persists across client navigation within the session
 let mockRecipes: Recipe[] = [];
 let mockRatings: RatingEntry[] = [];
+let mockLikes: LikeEntry[] = [];
+let mockFollows: FollowEntry[] = [];
 let initialized = false;
 
 export interface Recipe {
@@ -10,6 +12,8 @@ export interface Recipe {
   title: string;
   method: 'V60' | 'AeroPress' | 'Chemex' | 'French Press' | 'Espresso' | 'Cold Brew' | 'Other';
   grindSize: string;
+  grinderModel?: string;
+  grinderSetting?: string;
   waterTempCelsius: number;
   coffeeGrams: number;
   waterGrams: number;
@@ -34,6 +38,34 @@ export interface RatingEntry {
   userId: string;
   rating: number;
 }
+
+export interface LikeEntry {
+  recipeId: string;
+  userId: string;
+  createdAt: string;
+}
+
+export interface FollowEntry {
+  followerId: string;
+  followingId: string;
+}
+
+export interface GrinderModel {
+  id: string;
+  name: string;
+  settingType: 'clicks' | 'dial';
+  minSetting: number;
+  maxSetting: number;
+}
+
+export const GRINDER_MODELS: GrinderModel[] = [
+  { id: 'comandante-c40', name: 'Comandante C40', settingType: 'clicks', minSetting: 0, maxSetting: 40 },
+  { id: '1zpresso-jx-pro', name: '1Zpresso JX-Pro', settingType: 'clicks', minSetting: 0, maxSetting: 90 },
+  { id: 'timemore-c3', name: 'Timemore C3', settingType: 'clicks', minSetting: 0, maxSetting: 36 },
+  { id: 'baratza-encore', name: 'Baratza Encore', settingType: 'dial', minSetting: 1, maxSetting: 40 },
+  { id: 'fellow-ode-gen2', name: 'Fellow Ode Gen 2', settingType: 'dial', minSetting: 1, maxSetting: 11 },
+  { id: 'niche-zero', name: 'Niche Zero', settingType: 'dial', minSetting: 0, maxSetting: 30 },
+];
 
 // Initialize with seed data on first load
 function initializeData() {
@@ -257,6 +289,28 @@ function initializeData() {
   ];
 
   mockRatings = seedRatings;
+
+  // Seed likes
+  const seedLikes: LikeEntry[] = [
+    { recipeId: '1', userId: 'user_seed_2', createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+    { recipeId: '1', userId: 'user_seed_3', createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+    { recipeId: '2', userId: 'user_seed_1', createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
+    { recipeId: '2', userId: 'user_seed_4', createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+    { recipeId: '3', userId: 'user_seed_2', createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+    { recipeId: '4', userId: 'user_seed_1', createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() },
+    { recipeId: '4', userId: 'user_seed_5', createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+  ];
+  mockLikes = seedLikes;
+
+  // Seed follows
+  const seedFollows: FollowEntry[] = [
+    { followerId: 'user_seed_2', followingId: 'user_seed_1' },
+    { followerId: 'user_seed_3', followingId: 'user_seed_1' },
+    { followerId: 'user_seed_1', followingId: 'user_seed_2' },
+    { followerId: 'user_seed_4', followingId: 'user_seed_2' },
+    { followerId: 'user_seed_5', followingId: 'user_seed_3' },
+  ];
+  mockFollows = seedFollows;
 }
 
 function computeRating(recipeId: string) {
@@ -463,4 +517,79 @@ export async function forkRecipe(
 
   mockRecipes.push(newRecipe);
   return enrichRecipe(newRecipe, userId);
+}
+
+// Like functions
+export async function toggleLike(recipeId: string, userId: string): Promise<boolean> {
+  initializeData();
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  const existingIndex = mockLikes.findIndex(
+    l => l.recipeId === recipeId && l.userId === userId
+  );
+
+  if (existingIndex >= 0) {
+    mockLikes.splice(existingIndex, 1);
+    return false;
+  } else {
+    mockLikes.push({ recipeId, userId, createdAt: new Date().toISOString() });
+    return true;
+  }
+}
+
+export function getLikeCount(recipeId: string): number {
+  initializeData();
+  return mockLikes.filter(l => l.recipeId === recipeId).length;
+}
+
+export function hasUserLiked(recipeId: string, userId: string): boolean {
+  initializeData();
+  return mockLikes.some(l => l.recipeId === recipeId && l.userId === userId);
+}
+
+export function getUserLikedRecipes(userId: string): Recipe[] {
+  initializeData();
+  const likedRecipeIds = mockLikes
+    .filter(l => l.userId === userId)
+    .map(l => l.recipeId);
+  
+  return mockRecipes.filter(r => likedRecipeIds.includes(r.id));
+}
+
+// Follow functions
+export async function followUser(followerId: string, followingId: string): Promise<void> {
+  initializeData();
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  if (followerId === followingId) return;
+  if (!mockFollows.some(f => f.followerId === followerId && f.followingId === followingId)) {
+    mockFollows.push({ followerId, followingId });
+  }
+}
+
+export async function unfollowUser(followerId: string, followingId: string): Promise<void> {
+  initializeData();
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  const index = mockFollows.findIndex(
+    f => f.followerId === followerId && f.followingId === followingId
+  );
+  if (index >= 0) {
+    mockFollows.splice(index, 1);
+  }
+}
+
+export function isFollowing(followerId: string, followingId: string): boolean {
+  initializeData();
+  return mockFollows.some(f => f.followerId === followerId && f.followingId === followingId);
+}
+
+export function getFollowers(userId: string): string[] {
+  initializeData();
+  return mockFollows.filter(f => f.followingId === userId).map(f => f.followerId);
+}
+
+export function getFollowing(userId: string): string[] {
+  initializeData();
+  return mockFollows.filter(f => f.followerId === userId).map(f => f.followingId);
 }

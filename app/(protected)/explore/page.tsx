@@ -1,21 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getRecipes, getDistinctRoasters, Recipe } from '@/lib/api';
+import { getRecipes, getDistinctRoasters, Recipe, getFollowing } from '@/lib/api';
 import RecipeCard from '@/components/recipe-card';
 import { useCompare } from '@/context/compare';
+import { useAuth } from '@/context/auth';
 
 const METHODS = ['All', 'V60', 'AeroPress', 'Chemex', 'French Press', 'Espresso', 'Cold Brew', 'Other'] as const;
 type SortOption = 'recent' | 'rating';
 
 export default function ExplorePage() {
   const { selectedRecipeIds } = useCompare();
+  const { user } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [roasters, setRoasters] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMethod, setSelectedMethod] = useState<string | undefined>();
   const [selectedRoaster, setSelectedRoaster] = useState<string | undefined>();
   const [sortBy, setSortBy] = useState<SortOption>('recent');
+  const [followingIds, setFollowingIds] = useState<string[]>([]);
 
   useEffect(() => {
     const loadRoasters = async () => {
@@ -25,6 +28,14 @@ export default function ExplorePage() {
     loadRoasters();
   }, []);
 
+  // Load following list when user logs in
+  useEffect(() => {
+    if (user) {
+      const following = getFollowing(user.id);
+      setFollowingIds(following);
+    }
+  }, [user]);
+
   useEffect(() => {
     const loadRecipes = async () => {
       try {
@@ -33,7 +44,15 @@ export default function ExplorePage() {
           roaster: selectedRoaster,
           sort: sortBy,
         });
-        setRecipes(data);
+
+        // Personalize feed: move recipes from followed users to top
+        if (user && followingIds.length > 0) {
+          const followedRecipes = data.filter(r => followingIds.includes(r.userId));
+          const otherRecipes = data.filter(r => !followingIds.includes(r.userId));
+          setRecipes([...followedRecipes, ...otherRecipes]);
+        } else {
+          setRecipes(data);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -41,7 +60,7 @@ export default function ExplorePage() {
 
     setIsLoading(true);
     loadRecipes();
-  }, [selectedMethod, selectedRoaster, sortBy]);
+  }, [selectedMethod, selectedRoaster, sortBy, user, followingIds]);
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">

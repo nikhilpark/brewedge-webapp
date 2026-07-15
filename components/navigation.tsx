@@ -3,11 +3,14 @@
 import { useAuth } from '@/context/auth';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import ThemeToggle from './theme-toggle';
+import { useState } from 'react';
 
 export default function Navigation() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [showMenu, setShowMenu] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -62,23 +65,52 @@ export default function Navigation() {
             </Link>
           </div>
 
-          {/* User Menu */}
-          <div className="flex items-center gap-3">
-            <img
-              src={user?.avatarUrl}
-              alt={user?.username}
-              className="w-8 h-8 rounded-full"
-            />
-            <div className="hidden sm:block">
-              <p className="text-sm font-medium text-foreground">{user?.username}</p>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
+          {/* Right Side: Theme Toggle + User Menu */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            
+            {/* User Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="w-8 h-8 rounded-full overflow-hidden border-2 border-muted hover:border-primary transition"
+                title={user?.username}
+              >
+                <img
+                  src={user?.avatarUrl}
+                  alt={user?.username}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+
+              {showMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-md shadow-lg z-50">
+                  <Link
+                    href={`/profile/${user?.id}`}
+                    className="block px-4 py-2 text-sm text-foreground hover:bg-muted transition border-b border-border"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    My Profile
+                  </Link>
+                  <Link
+                    href="/tools/grind-converter"
+                    className="block px-4 py-2 text-sm text-foreground hover:bg-muted transition border-b border-border"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    Tools
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setShowMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition"
+                  >
+                    Log Out
+                  </button>
+                </div>
+              )}
             </div>
-            <button
-              onClick={handleLogout}
-              className="text-sm text-muted-foreground hover:text-foreground transition px-2 py-1"
-            >
-              Logout
-            </button>
           </div>
         </div>
       </div>

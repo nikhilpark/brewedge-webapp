@@ -4,6 +4,7 @@ import { Lora, Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/context/auth'
 import { CompareProvider } from '@/context/compare'
+import { ThemeProvider } from '@/context/theme'
 
 const lora = Lora({
   variable: '--font-serif',
@@ -53,11 +54,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${lora.variable} ${inter.variable}`}>
       <body className="antialiased bg-background text-foreground">
-        <CompareProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </CompareProvider>
+        <ThemeProvider>
+          <CompareProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </CompareProvider>
+        </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

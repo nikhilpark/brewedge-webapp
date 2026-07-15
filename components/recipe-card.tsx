@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Recipe } from '@/lib/api';
+import { useState, useEffect } from 'react';
+import { Recipe, toggleLike, hasUserLiked, getLikeCount, getFollowing } from '@/lib/api';
 import { useCompare } from '@/context/compare';
+import { useAuth } from '@/context/auth';
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -12,7 +14,20 @@ interface RecipeCardProps {
 export default function RecipeCard({ recipe, showAuthor = true }: RecipeCardProps) {
   const ratio = recipe.coffeeGrams > 0 ? (recipe.waterGrams / recipe.coffeeGrams).toFixed(1) : '0';
   const { isSelected, addRecipe, removeRecipe, isFull } = useCompare();
+  const { user } = useAuth();
   const selected = isSelected(recipe.id);
+  
+  const [isLiked, setIsLiked] = useState(() => user ? hasUserLiked(recipe.id, user.id) : false);
+  const [likeCount, setLikeCount] = useState(() => getLikeCount(recipe.id));
+  const [isLiking, setIsLiking] = useState(false);
+  const [isUserFollowed, setIsUserFollowed] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const following = getFollowing(user.id);
+      setIsUserFollowed(following.includes(recipe.userId));
+    }
+  }, [user, recipe.userId]);
 
   const handleCompareClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -24,6 +39,21 @@ export default function RecipeCard({ recipe, showAuthor = true }: RecipeCardProp
     }
   };
 
+  const handleLikeClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user || isLiking) return;
+
+    setIsLiking(true);
+    try {
+      const newLiked = await toggleLike(recipe.id, user.id);
+      setIsLiked(newLiked);
+      setLikeCount(newLiked ? likeCount + 1 : Math.max(0, likeCount - 1));
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
   return (
     <div className="relative">
       <Link href={`/recipes/${recipe.id}`}>
@@ -32,8 +62,13 @@ export default function RecipeCard({ recipe, showAuthor = true }: RecipeCardProp
           <div className="p-4 border-b border-border bg-muted/50">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 className="font-serif font-bold text-lg text-foreground line-clamp-2 flex-1">{recipe.title}</h3>
+                  {isUserFollowed && (
+                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full font-medium whitespace-nowrap">
+                      Following
+                    </span>
+                  )}
                   {recipe.forkedFromId && (
                     <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full font-medium whitespace-nowrap">
                       🔄 Remix
@@ -83,7 +118,7 @@ export default function RecipeCard({ recipe, showAuthor = true }: RecipeCardProp
             <p className="text-sm text-foreground line-clamp-2">{recipe.tastingNotes}</p>
           </div>
 
-          {/* Ratings */}
+          {/* Ratings & Like */}
           <div className="flex items-center justify-between pt-4 border-t border-border">
             <div className="flex items-center gap-2">
               <div className="flex text-accent">
@@ -95,6 +130,14 @@ export default function RecipeCard({ recipe, showAuthor = true }: RecipeCardProp
               </div>
               <span className="text-xs font-medium text-foreground">Your rating</span>
             </div>
+            <button
+              onClick={handleLikeClick}
+              disabled={!user || isLiking}
+              className={`text-lg transition ${isLiked ? 'text-accent' : 'text-muted-foreground hover:text-accent'}`}
+              title="Like this recipe"
+            >
+              {isLiked ? '❤' : '🤍'}
+            </button>
           </div>
 
           {/* Community rating */}

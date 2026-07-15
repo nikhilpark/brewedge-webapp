@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth';
 import { useCompare } from '@/context/compare';
-import { getRecipeById, rateRecipe, forkRecipe, Recipe } from '@/lib/api';
+import { getRecipeById, rateRecipe, forkRecipe, toggleLike, hasUserLiked, getLikeCount, Recipe } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 
 export default function RecipeDetailPage() {
@@ -20,12 +20,19 @@ export default function RecipeDetailPage() {
   const [isRating, setIsRating] = useState(false);
   const [hoverRating, setHoverRating] = useState(0);
   const [isForking, setIsForking] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
 
   useEffect(() => {
     const loadRecipe = async () => {
       try {
         const data = await getRecipeById(recipeId, user?.id);
         setRecipe(data);
+        
+        if (user) {
+          setIsLiked(hasUserLiked(recipeId, user.id));
+        }
+        setLikeCount(getLikeCount(recipeId));
       } finally {
         setIsLoading(false);
       }
@@ -59,6 +66,18 @@ export default function RecipeDetailPage() {
       }
     } finally {
       setIsForking(false);
+    }
+  };
+
+  const handleLikeToggle = async () => {
+    if (!user) return;
+
+    try {
+      const newLiked = await toggleLike(recipeId, user.id);
+      setIsLiked(newLiked);
+      setLikeCount(newLiked ? likeCount + 1 : Math.max(0, likeCount - 1));
+    } catch (error) {
+      console.error('Like toggle error:', error);
     }
   };
 
@@ -145,6 +164,22 @@ export default function RecipeDetailPage() {
                 {recipe.userRating && (
                   <span className="text-sm text-muted-foreground">
                     You rated: {recipe.userRating} star{recipe.userRating !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+
+              {/* Like Button */}
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  onClick={handleLikeToggle}
+                  className="text-4xl transition hover:scale-110"
+                  title={isLiked ? 'Unlike this recipe' : 'Like this recipe'}
+                >
+                  {isLiked ? '❤' : '🤍'}
+                </button>
+                {likeCount > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    {likeCount} like{likeCount !== 1 ? 's' : ''}
                   </span>
                 )}
               </div>
