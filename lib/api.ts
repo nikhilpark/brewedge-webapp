@@ -24,6 +24,9 @@ export interface Recipe {
   userRating?: number;
   forkedFromId?: string;
   forkedFromAuthor?: string;
+  roaster?: string;
+  beanName?: string;
+  originNote?: string;
 }
 
 export interface RatingEntry {
@@ -54,6 +57,9 @@ function initializeData() {
       personalRating: 5,
       isPublic: true,
       createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      roaster: 'Onyx Coffee Lab',
+      beanName: 'Ethiopia Gedeb',
+      originNote: 'Ethiopian natural, floral and fruity',
     },
     {
       id: '2',
@@ -71,6 +77,9 @@ function initializeData() {
       personalRating: 5,
       isPublic: true,
       createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      roaster: 'Blue Bottle Coffee',
+      beanName: 'Colombia Geisha',
+      originNote: 'Colombian washed, sweet and clean',
     },
     {
       id: '3',
@@ -88,6 +97,9 @@ function initializeData() {
       personalRating: 4,
       isPublic: true,
       createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      roaster: 'Onyx Coffee Lab',
+      beanName: 'Kenya AA',
+      originNote: 'Kenyan AA washed, stone fruit and wine notes',
     },
     {
       id: '4',
@@ -105,6 +117,9 @@ function initializeData() {
       personalRating: 4,
       isPublic: true,
       createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      roaster: 'Counter Culture Coffee',
+      beanName: 'Brazil Santos',
+      originNote: 'Brazilian natural, chocolate and nutty',
     },
     {
       id: '5',
@@ -122,6 +137,9 @@ function initializeData() {
       personalRating: 5,
       isPublic: true,
       createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+      roaster: 'Blue Bottle Coffee',
+      beanName: 'Costa Rica Tarrazú',
+      originNote: 'Costa Rican washed, caramel and hazelnut',
     },
     {
       id: '6',
@@ -139,6 +157,9 @@ function initializeData() {
       personalRating: 4,
       isPublic: true,
       createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+      roaster: 'Intelligentsia Coffee',
+      beanName: 'Sumatra Mandheling',
+      originNote: 'Indonesian semi-washed, earthy and full-bodied',
     },
     {
       id: '7',
@@ -156,6 +177,11 @@ function initializeData() {
       personalRating: 5,
       isPublic: true,
       createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+      roaster: 'Onyx Coffee Lab',
+      beanName: 'Rwanda Huye Mountain',
+      originNote: 'Rwandan natural, fruity and floral',
+      forkedFromId: '1',
+      forkedFromAuthor: 'Sarah Chen',
     },
     {
       id: '8',
@@ -173,6 +199,11 @@ function initializeData() {
       personalRating: 4,
       isPublic: true,
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      roaster: 'Onyx Coffee Lab',
+      beanName: 'Ethiopia Gedeb',
+      originNote: 'Ethiopian natural, floral and fruity',
+      forkedFromId: '1',
+      forkedFromAuthor: 'Sarah Chen',
     },
   ];
 
@@ -257,6 +288,7 @@ function enrichRecipe(recipe: Recipe, userId?: string): Recipe {
 
 export async function getRecipes(filters?: {
   method?: string;
+  roaster?: string;
   sort?: 'rating' | 'recent';
 }): Promise<Recipe[]> {
   initializeData();
@@ -270,6 +302,10 @@ export async function getRecipes(filters?: {
     results = results.filter(r => r.method === filters.method);
   }
 
+  if (filters?.roaster) {
+    results = results.filter(r => r.roaster === filters.roaster);
+  }
+
   if (filters?.sort === 'rating') {
     results.sort((a, b) => {
       const aRating = computeRating(a.id).communityRating;
@@ -281,6 +317,17 @@ export async function getRecipes(filters?: {
   }
 
   return results.map(r => enrichRecipe(r));
+}
+
+export function getDistinctRoasters(): string[] {
+  initializeData();
+  const roasters = new Set<string>();
+  
+  mockRecipes
+    .filter(r => r.isPublic && r.roaster)
+    .forEach(r => roasters.add(r.roaster!));
+  
+  return Array.from(roasters).sort();
 }
 
 export async function getUserRecipes(userId: string): Promise<Recipe[]> {

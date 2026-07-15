@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth';
+import { useCompare } from '@/context/compare';
 import { getRecipeById, rateRecipe, forkRecipe, Recipe } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 
@@ -11,6 +12,7 @@ export default function RecipeDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { isSelected, addRecipe, removeRecipe, isFull } = useCompare();
   const recipeId = params.id as string;
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
@@ -218,21 +220,47 @@ export default function RecipeDetailPage() {
             </div>
 
             {/* Recipe Actions */}
-            <div className="border-t border-border pt-6 flex gap-3">
-              {isOwnRecipe ? (
-                <Link href={`/recipes/${recipe.id}/edit`} className="flex-1">
-                  <Button className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground font-medium">
-                    Edit Recipe
+            <div className="border-t border-border pt-6 flex flex-col gap-3">
+              <div className="flex gap-3">
+                {isOwnRecipe ? (
+                  <Link href={`/recipes/${recipe.id}/edit`} className="flex-1">
+                    <Button className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground font-medium">
+                      Edit Recipe
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button
+                    onClick={handleFork}
+                    disabled={isForking || !user}
+                    className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground font-medium"
+                  >
+                    {isForking ? 'Remixing...' : 'Remix this recipe'}
                   </Button>
-                </Link>
-              ) : (
-                <Button
-                  onClick={handleFork}
-                  disabled={isForking || !user}
-                  className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground font-medium"
+                )}
+              </div>
+
+              {/* Compare Button */}
+              {!isOwnRecipe && recipe && (
+                <button
+                  onClick={() => {
+                    if (isSelected(recipe.id)) {
+                      removeRecipe(recipe.id);
+                    } else if (!isFull()) {
+                      addRecipe(recipe.id);
+                    }
+                  }}
+                  disabled={!isSelected(recipe.id) && isFull()}
+                  className={`w-full py-2 px-3 text-sm font-medium rounded transition ${
+                    isSelected(recipe.id)
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : isFull()
+                      ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                      : 'bg-muted text-foreground hover:bg-muted/80'
+                  }`}
+                  title={isFull() && !isSelected(recipe.id) ? 'Compare up to 3 recipes' : ''}
                 >
-                  {isForking ? 'Remixing...' : 'Remix this recipe'}
-                </Button>
+                  {isSelected(recipe.id) ? '✓ In Compare' : 'Add to Compare'}
+                </button>
               )}
             </div>
           </div>

@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth';
 import Navigation from '@/components/navigation';
+import CompareTray from '@/components/compare-tray';
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -28,7 +29,8 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <Navigation />
-      <main>{children}</main>
+      <main className="pb-32">{children}</main>
+      <CompareTray />
     </>
   );
 }

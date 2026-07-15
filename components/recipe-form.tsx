@@ -25,6 +25,9 @@ export default function RecipeForm({ initialRecipe, onSubmit, isLoading = false 
     tastingNotes: initialRecipe?.tastingNotes || '',
     personalRating: initialRecipe?.personalRating || 3,
     isPublic: initialRecipe?.isPublic ?? true,
+    roaster: initialRecipe?.roaster || '',
+    beanName: initialRecipe?.beanName || '',
+    originNote: initialRecipe?.originNote || '',
   });
 
   const ratio = formData.coffeeGrams > 0 ? (formData.waterGrams / formData.coffeeGrams).toFixed(2) : '0';
@@ -166,6 +169,52 @@ export default function RecipeForm({ initialRecipe, onSubmit, isLoading = false 
           required
           disabled={isLoading}
         />
+      </div>
+
+      {/* Coffee Used Section */}
+      <div className="bg-muted/30 rounded-md p-4 border border-border">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Coffee Used (Optional)</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Roaster
+            </label>
+            <input
+              type="text"
+              value={formData.roaster}
+              onChange={(e) => setFormData({ ...formData, roaster: e.target.value })}
+              placeholder="e.g., Onyx Coffee Lab"
+              className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={isLoading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Bean Name
+            </label>
+            <input
+              type="text"
+              value={formData.beanName}
+              onChange={(e) => setFormData({ ...formData, beanName: e.target.value })}
+              placeholder="e.g., Ethiopia Gedeb"
+              className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={isLoading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Origin Notes
+            </label>
+            <input
+              type="text"
+              value={formData.originNote}
+              onChange={(e) => setFormData({ ...formData, originNote: e.target.value })}
+              placeholder="e.g., Ethiopian natural, floral and fruity"
+              className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={isLoading}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Tasting Notes */}

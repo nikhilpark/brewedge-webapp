@@ -1,23 +1,36 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getRecipes, Recipe } from '@/lib/api';
+import { getRecipes, getDistinctRoasters, Recipe } from '@/lib/api';
 import RecipeCard from '@/components/recipe-card';
+import { useCompare } from '@/context/compare';
 
 const METHODS = ['All', 'V60', 'AeroPress', 'Chemex', 'French Press', 'Espresso', 'Cold Brew', 'Other'] as const;
 type SortOption = 'recent' | 'rating';
 
 export default function ExplorePage() {
+  const { selectedRecipeIds } = useCompare();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [roasters, setRoasters] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMethod, setSelectedMethod] = useState<string | undefined>();
+  const [selectedRoaster, setSelectedRoaster] = useState<string | undefined>();
   const [sortBy, setSortBy] = useState<SortOption>('recent');
+
+  useEffect(() => {
+    const loadRoasters = async () => {
+      const distinctRoasters = getDistinctRoasters();
+      setRoasters(distinctRoasters);
+    };
+    loadRoasters();
+  }, []);
 
   useEffect(() => {
     const loadRecipes = async () => {
       try {
         const data = await getRecipes({
           method: selectedMethod && selectedMethod !== 'All' ? (selectedMethod as any) : undefined,
+          roaster: selectedRoaster,
           sort: sortBy,
         });
         setRecipes(data);
@@ -28,7 +41,7 @@ export default function ExplorePage() {
 
     setIsLoading(true);
     loadRecipes();
-  }, [selectedMethod, sortBy]);
+  }, [selectedMethod, selectedRoaster, sortBy]);
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
@@ -40,9 +53,9 @@ export default function ExplorePage() {
         </div>
 
         {/* Filters */}
-        <div className="mb-8 space-y-4 sm:space-y-0 sm:flex sm:items-center sm:gap-6">
+        <div className="mb-8 space-y-4">
           {/* Method Filter */}
-          <div className="flex-1">
+          <div>
             <label className="block text-sm font-medium text-foreground mb-2">
               Method
             </label>
@@ -63,21 +76,52 @@ export default function ExplorePage() {
             </div>
           </div>
 
-          {/* Sort */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Sort
-            </label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="px-4 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="recent">Most Recent</option>
-              <option value="rating">Highest Rated</option>
-            </select>
+          {/* Roaster & Sort Row */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Roaster Filter */}
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Roaster
+              </label>
+              <select
+                value={selectedRoaster || ''}
+                onChange={(e) => setSelectedRoaster(e.target.value || undefined)}
+                className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">All Roasters</option>
+                {roasters.map((roaster) => (
+                  <option key={roaster} value={roaster}>
+                    {roaster}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort */}
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Sort
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="recent">Most Recent</option>
+                <option value="rating">Highest Rated</option>
+              </select>
+            </div>
           </div>
         </div>
+
+        {/* Compare Tray Indicator */}
+        {selectedRecipeIds.length > 0 && (
+          <div className="mb-6 p-3 bg-accent/10 border border-accent/20 rounded-md">
+            <p className="text-sm text-foreground">
+              <span className="font-semibold">{selectedRecipeIds.length}</span> recipe{selectedRecipeIds.length !== 1 ? 's' : ''} selected for comparison
+            </p>
+          </div>
+        )}
 
         {/* Content */}
         {isLoading ? (
