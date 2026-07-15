@@ -22,6 +22,8 @@ export interface Recipe {
   communityRating?: number;
   ratingCount?: number;
   userRating?: number;
+  forkedFromId?: string;
+  forkedFromAuthor?: string;
 }
 
 export interface RatingEntry {
@@ -377,4 +379,41 @@ export async function rateRecipe(
 
   const recipe = mockRecipes.find(r => r.id === recipeId);
   return recipe ? enrichRecipe(recipe, userId) : null;
+}
+
+export async function forkRecipe(
+  sourceRecipeId: string,
+  userId: string,
+  userName: string
+): Promise<Recipe | null> {
+  initializeData();
+  
+  // Simulate network latency
+  await new Promise(resolve => setTimeout(resolve, 400));
+
+  const sourceRecipe = mockRecipes.find(r => r.id === sourceRecipeId);
+  if (!sourceRecipe) return null;
+
+  const newRecipe: Recipe = {
+    id: `recipe_${Date.now()}`,
+    userId,
+    authorName: userName,
+    title: sourceRecipe.title,
+    method: sourceRecipe.method,
+    grindSize: sourceRecipe.grindSize,
+    waterTempCelsius: sourceRecipe.waterTempCelsius,
+    coffeeGrams: sourceRecipe.coffeeGrams,
+    waterGrams: sourceRecipe.waterGrams,
+    bloomTimeSeconds: sourceRecipe.bloomTimeSeconds,
+    totalBrewTimeSeconds: sourceRecipe.totalBrewTimeSeconds,
+    tastingNotes: '',
+    personalRating: 0,
+    isPublic: false,
+    createdAt: new Date().toISOString(),
+    forkedFromId: sourceRecipeId,
+    forkedFromAuthor: sourceRecipe.authorName,
+  };
+
+  mockRecipes.push(newRecipe);
+  return enrichRecipe(newRecipe, userId);
 }

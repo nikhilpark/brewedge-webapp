@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth';
-import { getRecipeById, rateRecipe, Recipe } from '@/lib/api';
+import { getRecipeById, rateRecipe, forkRecipe, Recipe } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 
 export default function RecipeDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { user } = useAuth();
   const recipeId = params.id as string;
 
@@ -16,6 +17,7 @@ export default function RecipeDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRating, setIsRating] = useState(false);
   const [hoverRating, setHoverRating] = useState(0);
+  const [isForking, setIsForking] = useState(false);
 
   useEffect(() => {
     const loadRecipe = async () => {
@@ -41,6 +43,20 @@ export default function RecipeDetailPage() {
       }
     } finally {
       setIsRating(false);
+    }
+  };
+
+  const handleFork = async () => {
+    if (!user || !recipe) return;
+    setIsForking(true);
+
+    try {
+      const forked = await forkRecipe(recipe.id, user.id, user.username);
+      if (forked) {
+        router.push(`/recipes/${forked.id}/edit`);
+      }
+    } finally {
+      setIsForking(false);
     }
   };
 
@@ -85,6 +101,13 @@ export default function RecipeDetailPage() {
         <div className="bg-card rounded-lg border border-border overflow-hidden">
           {/* Header Section */}
           <div className="bg-muted/50 border-b border-border p-6 sm:p-8">
+            {/* Lineage Badge */}
+            {recipe.forkedFromId && (
+              <div className="mb-4 inline-block px-3 py-1 bg-accent/20 text-accent text-xs font-medium rounded-full">
+                Remixed from <Link href={`/recipes/${recipe.forkedFromId}`} className="hover:underline font-semibold">{recipe.forkedFromAuthor}</Link>&apos;s recipe
+              </div>
+            )}
+
             <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex-1">
                 <h1 className="text-4xl font-serif font-bold text-foreground mb-2">{recipe.title}</h1>
@@ -194,16 +217,24 @@ export default function RecipeDetailPage() {
               </div>
             </div>
 
-            {/* Your Recipe Actions */}
-            {isOwnRecipe && (
-              <div className="border-t border-border pt-6 flex gap-3">
+            {/* Recipe Actions */}
+            <div className="border-t border-border pt-6 flex gap-3">
+              {isOwnRecipe ? (
                 <Link href={`/recipes/${recipe.id}/edit`} className="flex-1">
                   <Button className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground font-medium">
                     Edit Recipe
                   </Button>
                 </Link>
-              </div>
-            )}
+              ) : (
+                <Button
+                  onClick={handleFork}
+                  disabled={isForking || !user}
+                  className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground font-medium"
+                >
+                  {isForking ? 'Remixing...' : 'Remix this recipe'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
