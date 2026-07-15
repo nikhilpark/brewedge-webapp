@@ -56,6 +56,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     setThemeState(initialTheme);
     setAccentColorState(savedAccent || 'brown');
+    
+    // Apply to DOM immediately
+    const htmlElement = document.documentElement;
+    if (initialTheme === 'dark') {
+      htmlElement.classList.add('dark');
+    } else {
+      htmlElement.classList.remove('dark');
+    }
+    htmlElement.style.setProperty('--accent-color-id', savedAccent || 'brown');
+    
     setMounted(true);
   }, []);
 

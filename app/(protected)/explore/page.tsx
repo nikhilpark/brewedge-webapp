@@ -105,7 +105,7 @@ export default function ExplorePage() {
               <select
                 value={selectedRoaster || ''}
                 onChange={(e) => setSelectedRoaster(e.target.value || undefined)}
-                className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 border border-border rounded-md bg-popover text-popover-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">All Roasters</option>
                 {roasters.map((roaster) => (
@@ -124,7 +124,7 @@ export default function ExplorePage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 border border-border rounded-md bg-popover text-popover-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="recent">Most Recent</option>
                 <option value="rating">Highest Rated</option>

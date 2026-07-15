@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Recipe } from '@/lib/api';
+import Link from 'next/link';
+import { Recipe, GRINDER_MODELS } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 
 interface RecipeFormProps {
@@ -16,7 +17,8 @@ export default function RecipeForm({ initialRecipe, onSubmit, isLoading = false 
   const [formData, setFormData] = useState({
     title: initialRecipe?.title || '',
     method: (initialRecipe?.method || 'V60') as typeof METHODS[number],
-    grindSize: initialRecipe?.grindSize || '',
+    grinderModel: initialRecipe?.grinderModel || '',
+    grinderSetting: initialRecipe?.grinderSetting || '',
     waterTempCelsius: initialRecipe?.waterTempCelsius || 195,
     coffeeGrams: initialRecipe?.coffeeGrams || 20,
     waterGrams: initialRecipe?.waterGrams || 300,
@@ -29,6 +31,8 @@ export default function RecipeForm({ initialRecipe, onSubmit, isLoading = false 
     beanName: initialRecipe?.beanName || '',
     originNote: initialRecipe?.originNote || '',
   });
+
+  const selectedGrinder = GRINDER_MODELS.find(g => g.id === formData.grinderModel);
 
   const ratio = formData.coffeeGrams > 0 ? (formData.waterGrams / formData.coffeeGrams).toFixed(2) : '0';
 
@@ -74,21 +78,88 @@ export default function RecipeForm({ initialRecipe, onSubmit, isLoading = false 
         </select>
       </div>
 
-      {/* Grind Size */}
+      {/* Grinder Selection */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-2">
-          Grind Size
+          Grinder Model
         </label>
-        <input
-          type="text"
-          value={formData.grindSize}
-          onChange={(e) => setFormData({ ...formData, grindSize: e.target.value })}
-          placeholder="e.g., Medium, Fine, Coarse"
-          className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          required
+        <select
+          value={formData.grinderModel}
+          onChange={(e) => setFormData({ ...formData, grinderModel: e.target.value, grinderSetting: '' })}
+          className="w-full px-4 py-2 border border-border rounded-md bg-popover text-popover-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           disabled={isLoading}
-        />
+        >
+          <option value="">Select a grinder...</option>
+          {GRINDER_MODELS.map((grinder) => (
+            <option key={grinder.id} value={grinder.id}>
+              {grinder.name}
+            </option>
+          ))}
+          <option value="custom">Other / Custom</option>
+        </select>
+        <Link href="/tools/grind-converter" className="text-xs text-primary hover:underline mt-1 inline-block">
+          Don't know your setting? Convert from another grinder →
+        </Link>
       </div>
+
+      {/* Grinder Setting */}
+      {formData.grinderModel && formData.grinderModel !== 'custom' && selectedGrinder && (
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Setting: {selectedGrinder.settingType === 'clicks' ? 'Clicks' : 'Dial'}
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={formData.grinderSetting}
+              onChange={(e) => setFormData({ ...formData, grinderSetting: e.target.value })}
+              min={selectedGrinder.minSetting}
+              max={selectedGrinder.maxSetting}
+              placeholder={`${selectedGrinder.minSetting}-${selectedGrinder.maxSetting}`}
+              className="flex-1 px-4 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={isLoading}
+            />
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {selectedGrinder.settingType === 'clicks' ? 'clicks' : 'dial'}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Range: {selectedGrinder.minSetting}-{selectedGrinder.maxSetting}
+          </p>
+        </div>
+      )}
+
+      {/* Custom Grinder */}
+      {formData.grinderModel === 'custom' && (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Grinder Name
+            </label>
+            <input
+              type="text"
+              value={formData.grinderModel}
+              onChange={(e) => setFormData({ ...formData, grinderModel: e.target.value })}
+              placeholder="e.g., Hand mill, Blade grinder"
+              className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={isLoading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Setting Description
+            </label>
+            <input
+              type="text"
+              value={formData.grinderSetting}
+              onChange={(e) => setFormData({ ...formData, grinderSetting: e.target.value })}
+              placeholder="e.g., 22 clicks, Position 5"
+              className="w-full px-4 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Coffee & Water */}
       <div className="grid grid-cols-2 gap-4">

@@ -35,10 +35,10 @@ export default function ThemeToggle() {
       </button>
 
       {showDropdown && (
-        <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-md shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-56 bg-popover/80 backdrop-blur-lg border border-border/50 rounded-lg shadow-xl z-50">
           {/* Theme Toggle */}
           <div className="p-4 border-b border-border">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">THEME</p>
+            <p className="text-xs font-semibold text-popover-foreground/70 mb-2">THEME</p>
             <div className="flex gap-2">
               {(['light', 'dark'] as const).map((t) => (
                 <button
@@ -50,7 +50,7 @@ export default function ThemeToggle() {
                   className={`flex-1 py-2 px-3 text-xs font-medium rounded transition ${
                     theme === t
                       ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-foreground hover:bg-muted/80'
+                      : 'bg-muted text-popover-foreground hover:bg-muted/80'
                   }`}
                 >
                   {t === 'light' ? '☀️ Light' : '🌙 Dark'}
@@ -61,7 +61,7 @@ export default function ThemeToggle() {
 
           {/* Accent Color Selector */}
           <div className="p-4">
-            <p className="text-xs font-semibold text-muted-foreground mb-3">ACCENT COLOR</p>
+            <p className="text-xs font-semibold text-popover-foreground/70 mb-3">ACCENT COLOR</p>
             <div className="grid grid-cols-5 gap-2">
               {ACCENT_COLORS.map((color) => (
                 <button
