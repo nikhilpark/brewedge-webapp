@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiClient, setAuthToken } from '@/lib/apiClient';
 
 export interface User {
   id: string;
@@ -14,7 +15,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,54 +25,87 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate checking for existing session on mount
+  // Check for existing session on mount using refresh token cookie
   useEffect(() => {
-    const storedUser = sessionStorage.getItem('brewEdgeUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    const restoreSession = async () => {
+      try {
+        const userData = await apiClient('/auth/me');
+        setUser(userData);
+      } catch (error) {
+        // Session expired or not authenticated
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    restoreSession();
   }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 400));
-    
-    const mockUser: User = {
-      id: `user_${Date.now()}`,
-      username: email.split('@')[0],
-      email,
-      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-    };
-    setUser(mockUser);
-    sessionStorage.setItem('brewEdgeUser', JSON.stringify(mockUser));
+    try {
+      const response = await apiClient('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      
+      // Store token in memory
+      if (response.accessToken) {
+        setAuthToken(response.accessToken);
+      }
+      
+      setUser(response.user);
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
     setIsLoading(false);
   };
 
   const signup = async (username: string, email: string, password: string) => {
     setIsLoading(true);
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const mockUser: User = {
-      id: `user_${Date.now()}`,
-      username,
-      email,
-      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-    };
-    setUser(mockUser);
-    sessionStorage.setItem('brewEdgeUser', JSON.stringify(mockUser));
+    try {
+      const response = await apiClient('/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify({ username, email, password }),
+      });
+      
+      // Store token in memory
+      if (response.accessToken) {
+        setAuthToken(response.accessToken);
+      }
+      
+      setUser(response.user);
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
     setIsLoading(false);
   };
 
-  const logout = () => {
-    setUser(null);
-    sessionStorage.removeItem('brewEdgeUser');
+  const logout = async () => {
+    try {
+      await apiClient('/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setAuthToken(null);
+      setUser(null);
+    }
+  };
+
+  const contextValue: AuthContextType = {
+    user,
+    isLoading,
+    login,
+    signup,
+    logout,
+    setUser,
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

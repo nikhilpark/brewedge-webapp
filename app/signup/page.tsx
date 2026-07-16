@@ -35,11 +35,15 @@ export default function SignupPage() {
     try {
       await signup(username, email, password);
       router.push('/dashboard');
-    } catch (err) {
-      setError('Signup failed. Please try again.');
-    } finally {
+    } catch (err: any) {
+      setError(err?.data?.message || 'Signup failed. Please try again.');
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleSignUp = () => {
+    // Full page redirect to Google OAuth endpoint
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/auth/google`;
   };
 
   return (
@@ -128,6 +132,17 @@ export default function SignupPage() {
           </Button>
         </form>
 
+        {/* Google OAuth Button */}
+        <div className="mt-6">
+          <button
+            onClick={handleGoogleSignUp}
+            disabled={isLoading}
+            className="w-full px-4 py-2 border border-border rounded-md bg-card text-foreground hover:bg-muted transition disabled:opacity-50"
+          >
+            Continue with Google
+          </button>
+        </div>
+
         {/* Login link */}
         <div className="mt-6 text-center text-sm">
           <span className="text-muted-foreground">Already have an account? </span>
@@ -138,8 +153,8 @@ export default function SignupPage() {
 
         {/* Demo hint */}
         <div className="mt-8 p-4 bg-muted rounded-md text-xs text-muted-foreground">
-          <p className="font-medium mb-2">Create an account:</p>
-          <p>Fill in any details to get started with your coffee journal.</p>
+          <p className="font-medium mb-2">Connecting to backend API:</p>
+          <p>Make sure the Express + MongoDB backend is running at http://localhost:3000/api</p>
         </div>
       </div>
     </main>
