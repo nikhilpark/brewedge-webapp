@@ -8,11 +8,27 @@ export interface ApiError extends Error {
   data?: any;
 }
 
-// Store token in memory (secure against XSS compared to localStorage)
+// Store token in memory with sessionStorage fallback for persistence across page reloads
 let authToken: string | null = null;
+
+// Initialize from sessionStorage on first import
+if (typeof window !== 'undefined') {
+  const storedToken = sessionStorage.getItem('brewEdgeAuthToken');
+  if (storedToken) {
+    authToken = storedToken;
+  }
+}
 
 export function setAuthToken(token: string | null) {
   authToken = token;
+  
+  if (typeof window !== 'undefined') {
+    if (token) {
+      sessionStorage.setItem('brewEdgeAuthToken', token);
+    } else {
+      sessionStorage.removeItem('brewEdgeAuthToken');
+    }
+  }
 }
 
 export function getAuthToken(): string | null {
