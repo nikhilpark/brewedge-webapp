@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getRecipes, getDistinctRoasters, Recipe, getFollowing } from '@/lib/api';
+import { useState } from 'react';
 import RecipeCard from '@/components/recipe-card';
 import { useCompare } from '@/context/compare';
 import { useAuth } from '@/context/auth';
+import { useRecipes, useUserFollowing, useRoasters } from '@/lib/hooks';
 
 const METHODS = ['All', 'V60', 'AeroPress', 'Chemex', 'French Press', 'Espresso', 'Cold Brew', 'Other'] as const;
 type SortOption = 'recent' | 'rating';
@@ -12,55 +12,22 @@ type SortOption = 'recent' | 'rating';
 export default function ExplorePage() {
   const { selectedRecipeIds } = useCompare();
   const { user } = useAuth();
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [roasters, setRoasters] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedMethod, setSelectedMethod] = useState<string | undefined>();
   const [selectedRoaster, setSelectedRoaster] = useState<string | undefined>();
   const [sortBy, setSortBy] = useState<SortOption>('recent');
-  const [followingIds, setFollowingIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    const loadRoasters = async () => {
-      const distinctRoasters = getDistinctRoasters();
-      setRoasters(distinctRoasters);
-    };
-    loadRoasters();
-  }, []);
+  // Fetch recipes with filters using SWR
+  const { recipes, isLoading } = useRecipes({
+    method: selectedMethod && selectedMethod !== 'All' ? (selectedMethod as any) : undefined,
+    roaster: selectedRoaster,
+    sort: sortBy,
+  });
 
-  // Load following list when user logs in
-  useEffect(() => {
-    if (user) {
-      const following = getFollowing(user.id);
-      setFollowingIds(following);
-    }
-  }, [user]);
+  // Fetch user's following list for personalization (array of user ID strings)
+  const { following } = useUserFollowing(user?.id ?? null);
 
-  useEffect(() => {
-    const loadRecipes = async () => {
-      try {
-        const data = await getRecipes({
-          method: selectedMethod && selectedMethod !== 'All' ? (selectedMethod as any) : undefined,
-          roaster: selectedRoaster,
-          sort: sortBy,
-        });
-
-        // Personalize feed: move recipes from followed users to top
-        if (user && followingIds.length > 0) {
-          const followedRecipes = data.filter(r => followingIds.includes(r.userId));
-          const otherRecipes = data.filter(r => !followingIds.includes(r.userId));
-          setRecipes([...followedRecipes, ...otherRecipes]);
-        } else {
-          setRecipes(data);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    setIsLoading(true);
-    loadRecipes();
-  }, [selectedMethod, selectedRoaster, sortBy, user, followingIds]);
+  // Distinct roasters from GET /recipes/roasters
+  const { roasters } = useRoasters();
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
@@ -158,9 +125,18 @@ export default function ExplorePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recipes.map((recipe) => (
-              <RecipeCard key={recipe.id} recipe={recipe} showAuthor={true} />
-            ))}
+            {recipes.map((recipe) => {
+              // Check if recipe is from a followed user (following is an array of ID strings)
+              const isUserFollowed = following.includes(recipe.userId);
+              return (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  showAuthor={true}
+                  isUserFollowed={isUserFollowed}
+                />
+              );
+            })}
           </div>
         )}
       </div>

@@ -1,8 +1,21 @@
 import Link from 'next/link';
+import {AuthRedirect} from '@/components/AuthRedirect';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+
 import { Button } from '@/components/ui/button';
 
-export default function Home() {
+export default async function Home() {
+
+  const cookieStore = await cookies();
+
+  if (cookieStore.has('accessToken')) {
+    redirect('/dashboard');
+  }
+
   return (
+    <>
+    {/* <AuthRedirect/> */}
     <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
       <nav className="border-b border-border sticky top-0 z-50 bg-card">
@@ -127,5 +140,6 @@ export default function Home() {
         </div>
       </footer>
     </div>
+    </>
   );
 }

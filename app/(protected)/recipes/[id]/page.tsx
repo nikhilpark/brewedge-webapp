@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth';
 import { useCompare } from '@/context/compare';
-import { getRecipeById, rateRecipe, forkRecipe, toggleLike, hasUserLiked, getLikeCount, Recipe } from '@/lib/api';
+import { useRecipe, rateRecipe, forkRecipe, toggleLike } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
 
 export default function RecipeDetailPage() {
@@ -15,40 +15,24 @@ export default function RecipeDetailPage() {
   const { isSelected, addRecipe, removeRecipe, isFull } = useCompare();
   const recipeId = params.id as string;
 
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { recipe, isLoading, mutate } = useRecipe(recipeId);
   const [isRating, setIsRating] = useState(false);
   const [hoverRating, setHoverRating] = useState(0);
   const [isForking, setIsForking] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
 
-  useEffect(() => {
-    const loadRecipe = async () => {
-      try {
-        const data = await getRecipeById(recipeId, user?.id);
-        setRecipe(data);
-        
-        if (user) {
-          setIsLiked(hasUserLiked(recipeId, user.id));
-        }
-        setLikeCount(getLikeCount(recipeId));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadRecipe();
-  }, [recipeId, user?.id]);
+  // Like state comes from the backend's enriched recipe fields
+  const isLiked = recipe?.userLiked ?? false;
+  const likeCount = recipe?.likeCount ?? 0;
 
   const handleRate = async (rating: number) => {
     if (!user || !recipe) return;
     setIsRating(true);
 
     try {
-      const updated = await rateRecipe(recipeId, user.id, rating);
+      // Backend returns the updated enriched recipe — sync it into the SWR cache
+      const updated = await rateRecipe(recipe.id, rating);
       if (updated) {
-        setRecipe(updated);
+        await mutate(updated, { revalidate: false });
       }
     } finally {
       setIsRating(false);
@@ -60,7 +44,7 @@ export default function RecipeDetailPage() {
     setIsForking(true);
 
     try {
-      const forked = await forkRecipe(recipe.id, user.id, user.username);
+      const forked = await forkRecipe(recipe.id);
       if (forked) {
         router.push(`/recipes/${forked.id}/edit`);
       }
@@ -70,12 +54,19 @@ export default function RecipeDetailPage() {
   };
 
   const handleLikeToggle = async () => {
-    if (!user) return;
+    if (!user || !recipe) return;
 
     try {
-      const newLiked = await toggleLike(recipeId, user.id);
-      setIsLiked(newLiked);
-      setLikeCount(newLiked ? likeCount + 1 : Math.max(0, likeCount - 1));
+      // Backend returns the new liked state — optimistically patch the cache
+      const newLiked = await toggleLike(recipe.id);
+      await mutate(
+        {
+          ...recipe,
+          userLiked: newLiked,
+          likeCount: newLiked ? likeCount + 1 : Math.max(0, likeCount - 1),
+        },
+        { revalidate: false }
+      );
     } catch (error) {
       console.error('Like toggle error:', error);
     }
@@ -172,7 +163,8 @@ export default function RecipeDetailPage() {
               <div className="flex flex-col items-center gap-2">
                 <button
                   onClick={handleLikeToggle}
-                  className="text-4xl transition hover:scale-110"
+                  disabled={!user}
+                  className="text-4xl transition hover:scale-110 disabled:opacity-50"
                   title={isLiked ? 'Unlike this recipe' : 'Like this recipe'}
                 >
                   {isLiked ? '❤' : '🤍'}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { apiClient, setAuthToken } from '@/lib/apiClient';
+import { apiClient, setAuthToken, setRefreshToken, getRefreshToken } from '@/lib/apiClient';
 
 export interface User {
   id: string;
@@ -24,73 +24,76 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
+  console.log("Auth provider 27")
   // Check for existing session on mount using refresh token cookie
   useEffect(() => {
     const restoreSession = async () => {
       try {
         const userData = await apiClient('/auth/me');
+  
         setUser(userData);
-      } catch (error) {
-        // Session expired or not authenticated
+      } catch {
         setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
-
+  
     restoreSession();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (
+    email: string,
+    password: string
+  ) => {
     setIsLoading(true);
+  
     try {
       const response = await apiClient('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+        }),
       });
-      
-      // Store token in memory
-      if (response.accessToken) {
-        setAuthToken(response.accessToken);
-      }
-      
+  
       setUser(response.user);
-    } catch (error) {
+    } finally {
       setIsLoading(false);
-      throw error;
     }
-    setIsLoading(false);
   };
 
-  const signup = async (username: string, email: string, password: string) => {
+  const signup = async (
+    username: string,
+    email: string,
+    password: string
+  ) => {
     setIsLoading(true);
+  
     try {
       const response = await apiClient('/auth/signup', {
         method: 'POST',
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+        }),
       });
-      
-      // Store token in memory
-      if (response.accessToken) {
-        setAuthToken(response.accessToken);
-      }
-      
+  
       setUser(response.user);
-    } catch (error) {
+    } finally {
       setIsLoading(false);
-      throw error;
     }
-    setIsLoading(false);
   };
-
   const logout = async () => {
     try {
-      await apiClient('/auth/logout', { method: 'POST' });
+      await apiClient('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      setAuthToken(null);
       setUser(null);
     }
   };

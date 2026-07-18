@@ -66,7 +66,7 @@ export default function Navigation() {
             </Link>
             
             {/* Tools Dropdown */}
-            <div className="relative">
+            {/* <div className="relative">
               <button
                 onClick={() => setShowToolsMenu(!showToolsMenu)}
                 className="px-3 py-2 text-sm font-medium rounded-md transition text-foreground hover:bg-muted"
@@ -85,12 +85,12 @@ export default function Navigation() {
                   </Link>
                 </div>
               )}
-            </div>
+            </div> */}
           </div>
 
           {/* Right Side: Theme Toggle + User Menu */}
           <div className="flex items-center gap-2">
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             
             {/* User Dropdown */}
             <div className="relative">

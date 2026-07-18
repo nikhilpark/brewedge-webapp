@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth';
-import { createRecipe } from '@/lib/api';
+import { createRecipe } from '@/lib/hooks';
 import RecipeForm from '@/components/recipe-form';
 
 export default function NewRecipePage() {
@@ -18,14 +18,11 @@ export default function NewRecipePage() {
     setIsLoading(true);
 
     try {
-      const recipe = await createRecipe({
-        userId: user.id,
-        authorName: user.username,
-        ...formData,
-      });
+      // Backend derives userId and authorName from the auth token
+      const recipe = await createRecipe(formData);
       router.push(`/recipes/${recipe.id}`);
-    } catch (err) {
-      setError('Failed to create recipe. Please try again.');
+    } catch (err: any) {
+      setError(err?.data?.error || 'Failed to create recipe. Please try again.');
     } finally {
       setIsLoading(false);
     }

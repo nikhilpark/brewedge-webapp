@@ -1,28 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { useCompare } from '@/context/compare';
-import { getRecipeById, Recipe } from '@/lib/api';
+import { Recipe } from '@/lib/api';
+import { apiClient } from '@/lib/apiClient';
 
 export default function CompareTray() {
   const { selectedRecipeIds, removeRecipe, clearAll } = useCompare();
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
 
-  useEffect(() => {
-    const loadRecipes = async () => {
+  // Fetch each selected recipe from GET /recipes/:id
+  const { data } = useSWR(
+    selectedRecipeIds.length > 0 ? ['compare-tray', ...selectedRecipeIds] : null,
+    async () => {
       const loaded = await Promise.all(
-        selectedRecipeIds.map(id => getRecipeById(id))
+        selectedRecipeIds.map((id) => apiClient(`/recipes/${id}`))
       );
-      setRecipes(loaded.filter(Boolean) as Recipe[]);
-    };
-
-    if (selectedRecipeIds.length > 0) {
-      loadRecipes();
-    } else {
-      setRecipes([]);
+      return loaded.filter(Boolean) as Recipe[];
     }
-  }, [selectedRecipeIds]);
+  );
+
+  const recipes = data || [];
 
   if (selectedRecipeIds.length === 0) return null;
 

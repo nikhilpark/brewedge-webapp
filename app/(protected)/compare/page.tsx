@@ -1,34 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { useCompare } from '@/context/compare';
-import { getRecipeById, Recipe } from '@/lib/api';
+import { Recipe } from '@/lib/api';
+import { apiClient } from '@/lib/apiClient';
 import { Button } from '@/components/ui/button';
 
+// Fetch each selected recipe from GET /recipes/:id
+const fetchRecipes = async (ids: string[]): Promise<Recipe[]> => {
+  const loaded = await Promise.all(ids.map((id) => apiClient(`/recipes/${id}`)));
+  return loaded.filter(Boolean) as Recipe[];
+};
+
 export default function ComparePage() {
-  const router = useRouter();
   const { selectedRecipeIds, clearAll } = useCompare();
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadRecipes = async () => {
-      if (selectedRecipeIds.length === 0) {
-        setIsLoading(false);
-        return;
-      }
+  const { data, isLoading } = useSWR(
+    selectedRecipeIds.length > 0 ? ['compare-recipes', ...selectedRecipeIds] : null,
+    () => fetchRecipes(selectedRecipeIds)
+  );
 
-      const loaded = await Promise.all(
-        selectedRecipeIds.map(id => getRecipeById(id))
-      );
-      setRecipes(loaded.filter(Boolean) as Recipe[]);
-      setIsLoading(false);
-    };
-
-    loadRecipes();
-  }, [selectedRecipeIds]);
+  const recipes = data || [];
 
   if (isLoading) {
     return (

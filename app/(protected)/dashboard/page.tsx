@@ -1,30 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth';
-import { getUserRecipes, Recipe } from '@/lib/api';
+import { useUserRecipes } from '@/lib/hooks';
 import RecipeCard from '@/components/recipe-card';
 import { Button } from '@/components/ui/button';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const loadRecipes = async () => {
-      if (!user) return;
-      try {
-        const data = await getUserRecipes(user.id);
-        setRecipes(data);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadRecipes();
-  }, [user]);
+  const { recipes, isLoading } = useUserRecipes(user?.id ?? null);
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">

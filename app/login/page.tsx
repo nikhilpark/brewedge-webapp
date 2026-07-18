@@ -23,14 +23,14 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err?.data?.message || 'Login failed. Please try again.');
+      setError(err?.data?.error || err?.message || 'Login failed. Please try again.');
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = () => {
     // Full page redirect to Google OAuth endpoint
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/auth/google`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/auth/google`;
   };
 
   return (

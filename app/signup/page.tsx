@@ -36,7 +36,7 @@ export default function SignupPage() {
       await signup(username, email, password);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err?.data?.message || 'Signup failed. Please try again.');
+      setError(err?.data?.error || err?.message || 'Signup failed. Please try again.');
       setIsLoading(false);
     }
   };

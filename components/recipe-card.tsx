@@ -1,33 +1,28 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { Recipe, toggleLike, hasUserLiked, getLikeCount, getFollowing } from '@/lib/api';
+import { useState } from 'react';
+import { Recipe } from '@/lib/api';
+import { toggleLike } from '@/lib/hooks';
 import { useCompare } from '@/context/compare';
 import { useAuth } from '@/context/auth';
 
 interface RecipeCardProps {
   recipe: Recipe;
   showAuthor?: boolean;
+  isUserFollowed?: boolean;
 }
 
-export default function RecipeCard({ recipe, showAuthor = true }: RecipeCardProps) {
+export default function RecipeCard({ recipe, showAuthor = true, isUserFollowed = false }: RecipeCardProps) {
   const ratio = recipe.coffeeGrams > 0 ? (recipe.waterGrams / recipe.coffeeGrams).toFixed(1) : '0';
   const { isSelected, addRecipe, removeRecipe, isFull } = useCompare();
   const { user } = useAuth();
   const selected = isSelected(recipe.id);
   
-  const [isLiked, setIsLiked] = useState(() => user ? hasUserLiked(recipe.id, user.id) : false);
-  const [likeCount, setLikeCount] = useState(() => getLikeCount(recipe.id));
+  // Initialize from the backend's enriched recipe fields (userLiked / likeCount)
+  const [isLiked, setIsLiked] = useState(recipe.userLiked ?? false);
+  const [likeCount, setLikeCount] = useState(recipe.likeCount ?? 0);
   const [isLiking, setIsLiking] = useState(false);
-  const [isUserFollowed, setIsUserFollowed] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      const following = getFollowing(user.id);
-      setIsUserFollowed(following.includes(recipe.userId));
-    }
-  }, [user, recipe.userId]);
 
   const handleCompareClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -46,7 +41,7 @@ export default function RecipeCard({ recipe, showAuthor = true }: RecipeCardProp
 
     setIsLiking(true);
     try {
-      const newLiked = await toggleLike(recipe.id, user.id);
+      const newLiked = await toggleLike(recipe.id);
       setIsLiked(newLiked);
       setLikeCount(newLiked ? likeCount + 1 : Math.max(0, likeCount - 1));
     } finally {
@@ -133,10 +128,11 @@ export default function RecipeCard({ recipe, showAuthor = true }: RecipeCardProp
             <button
               onClick={handleLikeClick}
               disabled={!user || isLiking}
-              className={`text-lg transition ${isLiked ? 'text-accent' : 'text-muted-foreground hover:text-accent'}`}
+              className={`flex items-center gap-1 text-lg transition ${isLiked ? 'text-accent' : 'text-muted-foreground hover:text-accent'}`}
               title="Like this recipe"
             >
               {isLiked ? '❤' : '🤍'}
+              {likeCount > 0 && <span className="text-xs font-medium">{likeCount}</span>}
             </button>
           </div>
 

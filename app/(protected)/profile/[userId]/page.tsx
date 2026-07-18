@@ -77,7 +77,12 @@ export default function ProfilePage() {
             <h1 className="text-3xl font-serif font-bold text-foreground mb-1">
               {profileUser.username}
             </h1>
-            <p className="text-muted-foreground mb-4">{profileUser.email}</p>
+            {/* Public profile exposes bio, not email */}
+            {profileUser.bio ? (
+              <p className="text-muted-foreground mb-4">{profileUser.bio}</p>
+            ) : (
+              <p className="text-muted-foreground mb-4 italic">Coffee enthusiast</p>
+            )}
             
             {/* Stats */}
             <div className="flex gap-6 mb-4">

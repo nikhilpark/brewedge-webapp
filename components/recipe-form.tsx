@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Recipe, GRINDER_MODELS } from '@/lib/api';
+import { Recipe } from '@/lib/api';
+import { useGrinders } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
 
 interface RecipeFormProps {
@@ -14,6 +15,8 @@ interface RecipeFormProps {
 const METHODS = ['V60', 'AeroPress', 'Chemex', 'French Press', 'Espresso', 'Cold Brew', 'Other'] as const;
 
 export default function RecipeForm({ initialRecipe, onSubmit, isLoading = false }: RecipeFormProps) {
+  // GET /grinders — grinder models from the backend
+  const { grinders: GRINDER_MODELS } = useGrinders();
   const [formData, setFormData] = useState({
     title: initialRecipe?.title || '',
     method: (initialRecipe?.method || 'V60') as typeof METHODS[number],

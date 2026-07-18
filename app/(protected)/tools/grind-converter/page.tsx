@@ -1,23 +1,40 @@
 'use client';
 
 import { useState } from 'react';
-import { GRINDER_MODELS } from '@/lib/api';
-import { convertGrinderSetting } from '@/lib/grinderConversion';
+import { useGrinders, convertGrinderSetting } from '@/lib/hooks';
 import Link from 'next/link';
 
 export default function GrindConverterPage() {
+  const { grinders: GRINDER_MODELS, isLoading: grindersLoading } = useGrinders();
   const [fromGrinderId, setFromGrinderId] = useState('comandante-c40');
   const [fromSetting, setFromSetting] = useState(22);
   const [toGrinderId, setToGrinderId] = useState('timemore-c3');
   const [result, setResult] = useState<number | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
+  const [convertError, setConvertError] = useState('');
 
   const fromGrinder = GRINDER_MODELS.find(g => g.id === fromGrinderId);
   const toGrinder = GRINDER_MODELS.find(g => g.id === toGrinderId);
 
-  const handleConvert = () => {
-    if (!fromGrinder || !toGrinder || !fromSetting) return;
-    const converted = convertGrinderSetting(fromGrinderId, fromSetting, toGrinderId);
-    setResult(converted);
+  const handleConvert = async () => {
+    if (!fromGrinder || !toGrinder || fromSetting === undefined) return;
+    setConvertError('');
+    setIsConverting(true);
+
+    try {
+      // GET /grinders/convert?fromGrinder=&fromSetting=&toGrinder=
+      const data = await convertGrinderSetting({
+        fromGrinder: fromGrinderId,
+        fromSetting,
+        toGrinder: toGrinderId,
+      });
+      setResult(data.convertedSetting);
+    } catch (err: any) {
+      setConvertError(err?.data?.error || 'Conversion failed. Please try again.');
+      setResult(null);
+    } finally {
+      setIsConverting(false);
+    }
   };
 
   const handleSwap = () => {
@@ -88,12 +105,20 @@ export default function GrindConverterPage() {
             </div>
             <button
               onClick={handleConvert}
-              className="px-6 py-2 bg-primary text-primary-foreground font-medium rounded-md hover:bg-primary/90 transition whitespace-nowrap"
+              disabled={isConverting || grindersLoading}
+              className="px-6 py-2 bg-primary text-primary-foreground font-medium rounded-md hover:bg-primary/90 transition whitespace-nowrap disabled:opacity-50"
             >
-              Convert
+              {isConverting ? 'Converting...' : 'Convert'}
             </button>
           </div>
         </div>
+
+        {/* Conversion Error */}
+        {convertError && (
+          <div className="p-4 bg-destructive/10 border border-destructive text-destructive rounded-md text-sm">
+            {convertError}
+          </div>
+        )}
 
         {/* Result */}
         {result !== null && (

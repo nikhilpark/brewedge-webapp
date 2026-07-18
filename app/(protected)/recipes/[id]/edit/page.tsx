@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth';
-import { getRecipeById, updateRecipe, Recipe } from '@/lib/api';
+import { useRecipe, updateRecipe } from '@/lib/hooks';
 import RecipeForm from '@/components/recipe-form';
 
 export default function EditRecipePage() {
@@ -12,31 +12,12 @@ export default function EditRecipePage() {
   const { user } = useAuth();
   const recipeId = params.id as string;
 
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { recipe: fetchedRecipe, isLoading, mutate } = useRecipe(recipeId);
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    const loadRecipe = async () => {
-      try {
-        const data = await getRecipeById(recipeId, user?.id);
-        if (data && data.userId === user?.id) {
-          setRecipe(data);
-        } else {
-          setError('Recipe not found or you do not have permission to edit it.');
-        }
-      } catch (err) {
-        setError('Failed to load recipe.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (user) {
-      loadRecipe();
-    }
-  }, [recipeId, user]);
+  // Ownership check — backend also enforces this on PATCH
+  const recipe = fetchedRecipe && fetchedRecipe.userId === user?.id ? fetchedRecipe : null;
 
   const handleSubmit = async (formData: any) => {
     if (!user) return;
@@ -44,14 +25,12 @@ export default function EditRecipePage() {
     setIsSaving(true);
 
     try {
-      await updateRecipe(recipeId, {
-        userId: user.id,
-        authorName: user.username,
-        ...formData,
-      });
+      // Backend validates ownership; only send recipe fields
+      const updated = await updateRecipe(recipeId, formData);
+      await mutate(updated, { revalidate: false });
       router.push(`/recipes/${recipeId}`);
-    } catch (err) {
-      setError('Failed to update recipe. Please try again.');
+    } catch (err: any) {
+      setError(err?.data?.error || 'Failed to update recipe. Please try again.');
     } finally {
       setIsSaving(false);
     }
