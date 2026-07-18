@@ -91,7 +91,7 @@ export default function SignupPage() {
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
-              Password
+              Password (atleast 8 chars)
             </label>
             <input
               id="password"
@@ -152,10 +152,7 @@ export default function SignupPage() {
         </div>
 
         {/* Demo hint */}
-        <div className="mt-8 p-4 bg-muted rounded-md text-xs text-muted-foreground">
-          <p className="font-medium mb-2">Connecting to backend API:</p>
-          <p>Make sure the Express + MongoDB backend is running at http://localhost:3000/api</p>
-        </div>
+    
       </div>
     </main>
   );
